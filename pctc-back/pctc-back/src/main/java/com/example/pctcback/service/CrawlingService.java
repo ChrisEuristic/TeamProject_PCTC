@@ -7,6 +7,8 @@ import com.example.pctcback.persistence.BerthStatusRepository;
 import com.example.pctcback.persistence.PlannedBlockRepository;
 import com.example.pctcback.persistence.ShipRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
+import lombok.Getter;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -25,13 +27,15 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class CrawlingService {
     private final ShipRepository shipRepository;
     private final BerthStatusRepository berthStatusRepository;
     private final PlannedBlockRepository plannedBlockRepository;
+    @Getter
+    private List<Map<String,Map<String,Integer>>> emptyCon;
     @Autowired
     public CrawlingService(ShipRepository shipRepository, BerthStatusRepository berthStatusRepository, PlannedBlockRepository plannedBlockRepository) {
         this.shipRepository = shipRepository;
@@ -49,7 +53,8 @@ public class CrawlingService {
     }
 
 
-//    @Scheduled(fixedRate = 600000)
+    @Transactional
+    @Scheduled(fixedRate = 600000)
     public void runScrapyScript(){
         System.out.println("Scrapy is Starting..."); // 추후에 뺴서 둘것.
         ProcessBuilder processBuilder = new ProcessBuilder("scrapy","runspider","D:/SDH/TeamProject/TeamProject_PCTC/pctc-back/pctc-back/src/main/resources/Scrapsite.py");
@@ -75,8 +80,8 @@ public class CrawlingService {
     public List<Ship> PortStatus(){
         return shipRepository.findAll();
     }
-//    @Transactional
-//    @Scheduled(fixedRate = 650000)
+    @Transactional
+    @Scheduled(fixedRate = 650000)
     public void berthStatus() {
         WebDriver driver = settingWebDriver("http://info.bptc.co.kr:9084/content/sw/frame/berth_status_text_frame_sw_kr.jsp?p_id=BETX_SH_KR&snb_num=2&snb_div=service");
         WebElement month = driver.findElement(By.cssSelector("#container > section > section > section > form > table > thead > tr:nth-child(1) > td:nth-child(2) > label:nth-child(3) > input[type=radio]"));
@@ -112,8 +117,8 @@ public class CrawlingService {
         }
         driver.quit();
     }
-//    @Scheduled(fixedRate = 650000)
-    public List<Map<String,Map<String,Integer>>> emptyContainer() {
+    @Scheduled(fixedRate = 650000)
+    public void emptyContainer() {
         WebDriver driver = settingWebDriver("http://info.bptc.co.kr:9084/content/od/frame/yard_empty_frame_od_kr.jsp?p_id=EMPT_ON_KR&snb_num=8&snb_div=service&pop_ok=Y");
         List<WebElement> listcon = driver.findElements(By.cssSelector("#container > section > section > section > table > tbody:nth-child(4) > tr> td"));
         List<Map<String, Map<String, Integer>>> results = new ArrayList<>();
@@ -147,53 +152,24 @@ public class CrawlingService {
         }
         driver.quit();
         System.out.println("results = " + results);
-        return results;
-
-
+        emptyCon = results;
     }
+    @Transactional
     @Scheduled(fixedRate = 1024000)
     public void scheduledContainerOperation() throws InterruptedException {
-//        WebDriver driver = settingWebDriver("https://info.bptc.co.kr/content/YardState1.jsp?gu=0");
-//        List<WebElement> elements =driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
-//        for (WebElement element : elements) {
-//            System.out.println(element.getText());
-//        }
-//        driver = settingWebDriver("https://info.bptc.co.kr/content/YardState1.jsp?gu=1");
-//        List<WebElement> elements1 =driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
-//        for (WebElement element : elements1) {
-//            elements.add(element);
-//            System.out.println(element.getText());
-//        }
-//
-//        driver = settingWebDriver("https://info.bptc.co.kr/content/YardState1.jsp?gu=2");
-//        List<WebElement> elements2 =driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
-//        for (WebElement element : elements2) {
-//            elements.add(element);
-//            System.out.println(element.getText());
-//        }
-//
-//        driver = settingWebDriver("https://info.bptc.co.kr/content/YardState1.jsp?gu=3");
-//        List<WebElement> elements3 =driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
-//        for (WebElement element : elements3) {
-//            elements.add(element);
-//            System.out.println(element.getText());
-//        }
         List<String> urls = List.of(
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=0",
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=1",
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=2",
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=3"
         );
-        List<WebElement> elements = new ArrayList<>();
+        plannedBlockRepository.deleteAll();
+        AtomicReference<List<WebElement>> pagelements = new AtomicReference<>(new ArrayList<>());
         ExecutorService executor = Executors.newFixedThreadPool(urls.size());
         for (String url : urls) {
             executor.execute(() -> {
                 WebDriver driver = settingWebDriver(url);
-                List<WebElement> pageElements = driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
-
-                synchronized (elements) {
-                    elements.addAll(pageElements);
-                }
+                List<WebElement> elements= driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
                 for (int i = 13; i <= elements.size(); i += 13) {
                     PlannedBlock plannedBlock = PlannedBlock.builder()
                             .block(elements.get(i-13).getText())
@@ -210,15 +186,16 @@ public class CrawlingService {
                             .fiveYard(parseInt(elements.get(i-2).getText()))
                             .fiveShip(parseInt(elements.get(i-1).getText()))
                             .build();
+                    synchronized (plannedBlock){
 
                     updatePlannedBlock(plannedBlock);
                     System.out.println("plannedBlock.toString() = " + plannedBlock.toString());
+                    }
                 }
                 driver.quit();
-                executor.shutdown();
             });
         }
-        boolean awaitTermination = executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        boolean awaitTermination = executor.awaitTermination(4000L, TimeUnit.MILLISECONDS);
         if (awaitTermination) {
             executor.shutdown();
         } else {
