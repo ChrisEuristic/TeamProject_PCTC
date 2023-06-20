@@ -7,6 +7,7 @@ import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { AiOutlineHome } from "react-icons/ai";
+import DetailView from "./DetailView";
 
 export default function Calendar() {
   const events = [
@@ -97,8 +98,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(
     format(new Date(), "yyyy년 MM월 dd일")
   );
-
-  //event.clientY;
+  const [detailViewState, setDetailViewState] = useState<JSX.Element>();
 
   useEffect(() => {
     if (calendarApi) {
@@ -185,10 +185,14 @@ export default function Calendar() {
             }
           }}
           eventMouseEnter={(info) => {
+            setDetailViewState(<DetailView x={info.jsEvent.clientX} y={info.jsEvent.clientY} info={info.event.title} setDetailViewState={setDetailViewState} />)
+          }}
+          eventMouseLeave={(info) => {
             console.log("Clicked on event: " + info.event.title);
           }}
         />
       </div>
+      <span>{detailViewState}</span>
       <style jsx>{`
         div {
           width: 80vw;
