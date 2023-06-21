@@ -2,7 +2,6 @@ package com.example.pctcback.controller;
 
 import com.example.pctcback.model.BerthStatus;
 import com.example.pctcback.model.PlannedBlock;
-import com.example.pctcback.model.ScheduledContainer;
 import com.example.pctcback.persistence.BerthStatusRepository;
 import com.example.pctcback.persistence.PlannedBlockRepository;
 import com.example.pctcback.service.CrawlingService;
@@ -12,11 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 public class YardController {
@@ -52,6 +47,7 @@ public class YardController {
     @GetMapping("/init")
     public String YardInit(){
         ycoservice.myMethod("D:/SDH/TeamProject/TeamProject_PCTC/pctc-back/pctc-back/data/YardStatus.csv");
+        ycoservice.CreateYCO();
         return "현재 DB 에 정보 넣는중";
     }
     @GetMapping("/port")
@@ -77,7 +73,25 @@ public class YardController {
     @GetMapping("/api/SCO")
     public ResponseEntity<?> scheduledContainerOperation(){
         List<PlannedBlock> scheduledContainers = plannedBlockRepository.findAll();
-        return ResponseEntity.ok(scheduledContainers);
+        Map<String, List<Integer>> SCOmap = new HashMap<>();
+
+        for(PlannedBlock pb : scheduledContainers ){
+            List<Integer> value = new ArrayList<>();
+            value.add(pb.getNowYard());
+            value.add(pb.getNowShip());
+            value.add(pb.getOneYard());
+            value.add(pb.getOneShip());
+            value.add(pb.getTwoYard());
+            value.add(pb.getTwoShip());
+            value.add(pb.getThreeYard());
+            value.add(pb.getThreeShip());
+            value.add(pb.getFourYard());
+            value.add(pb.getFourShip());
+            value.add(pb.getFiveYard());
+            value.add(pb.getFiveShip());
+            SCOmap.put(pb.getBlock(),value);
+        }
+        return ResponseEntity.ok().body(SCOmap);
 
 
     }

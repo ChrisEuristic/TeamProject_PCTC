@@ -6,7 +6,6 @@ import com.example.pctcback.model.Ship;
 import com.example.pctcback.persistence.BerthStatusRepository;
 import com.example.pctcback.persistence.PlannedBlockRepository;
 import com.example.pctcback.persistence.ShipRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
 import org.openqa.selenium.By;
@@ -20,14 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class CrawlingService {
@@ -51,36 +47,44 @@ public class CrawlingService {
         return driver;
 
     }
-
-
     @Transactional
     @Scheduled(fixedRate = 600000)
-    public void runScrapyScript(){
-        System.out.println("Scrapy is Starting..."); // 추후에 뺴서 둘것.
-        ProcessBuilder processBuilder = new ProcessBuilder("scrapy","runspider","D:/SDH/TeamProject/TeamProject_PCTC/pctc-back/pctc-back/src/main/resources/Scrapsite.py");
-        try{
-            Process process = processBuilder.start();
-            InputStreamReader reader = new InputStreamReader(process.getInputStream());
-            StringBuilder output = new StringBuilder();
-            int ch;
-            while ((ch = reader.read()) != -1) {
-                output.append((char) ch);
+    public void ShipStatus(){
+        WebDriver driver = settingWebDriver("https://info.bptc.co.kr/");
+//        List<WebElement> elements = driver.findElements(By.cssSelector("div.role-body li.ship-li"));
+        List<WebElement> elements = driver.findElements(By.cssSelector("#mcontainer > div.stat-b.stat-b1 > div > dl.over > dd > div.role-body > ul > li.ship-li"));
+        List<Ship> ships = new ArrayList<>();
+        for (WebElement element : elements) {
+            String progress = element.findElement(By.cssSelector("span.progress")).getText().replace("%", "");
+            String order = element.findElement(By.cssSelector("span.order")).getText();
+            String name = element.findElement(By.cssSelector("div.txt1-wr a")).getText();
+            String arrival = element.findElement(By.cssSelector("div.txt1-wr.shiptime:nth-child(4) span")).getText();
+            String departure = element.findElement(By.cssSelector("div.txt1-wr.shiptime:nth-child(5) span")).getText();
+            String unloading = element.findElement(By.cssSelector("div.txt2-wr.operator span:nth-child(2)")).getText();
+            String loading = element.findElement(By.cssSelector("div.txt2-wr.operator span:nth-child(3)")).getText();
 
+            if (order != null) {
+                order = order.split("No.")[1].trim();
             }
-            String jsonString = output.toString();
-            ObjectMapper mapper = new ObjectMapper();
-            List<Ship> shipList = mapper.readValue(jsonString,mapper.getTypeFactory().constructCollectionType(List.class,Ship.class));
-            shipRepository.deleteAll();
-            shipRepository.saveAll(shipList);
-        }catch (IOException e){
-            e.printStackTrace();
+            Ship ship = Ship.builder()
+                    .progress(Integer.valueOf(progress.strip()))
+                    .portorder(Integer.parseInt(order))
+                    .name(name != null ? name.strip() : null)
+                    .arrival(arrival != null ? arrival.strip():null)
+                    .departure(departure !=null? departure.strip():null)
+                    .unloading(unloading != null ? unloading.strip(): null)
+                    .loading(loading != null? loading.strip(): null)
+                    .build();
+            ships.add(ship);
         }
-
+        shipRepository.saveAll(ships);
+        System.out.println("ships = " + ships);
+        driver.quit();
     }
+
     public List<Ship> PortStatus(){
         return shipRepository.findAll();
     }
-    @Transactional
     @Scheduled(fixedRate = 650000)
     public void berthStatus() {
         WebDriver driver = settingWebDriver("http://info.bptc.co.kr:9084/content/sw/frame/berth_status_text_frame_sw_kr.jsp?p_id=BETX_SH_KR&snb_num=2&snb_div=service");
@@ -92,7 +96,7 @@ public class CrawlingService {
         driver.switchTo().frame("output");
         WebElement loading = wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("body > p")));
         List<WebElement> elements = driver.findElements(By.cssSelector(".tabletypeC tbody tr td"));
-        BerthStatus bbb = null;
+        BerthStatus bbb;
         berthStatusRepository.deleteAll();
         for (int i = 15; i<= elements.size() ; i+=15){
                 bbb = BerthStatus.builder()
@@ -154,22 +158,24 @@ public class CrawlingService {
         System.out.println("results = " + results);
         emptyCon = results;
     }
-    @Transactional
     @Scheduled(fixedRate = 1024000)
     public void scheduledContainerOperation() throws InterruptedException {
         List<String> urls = List.of(
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=0",
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=1",
                 "https://info.bptc.co.kr/content/YardState1.jsp?gu=2",
-                "https://info.bptc.co.kr/content/YardState1.jsp?gu=3"
+                "https://info.bptc.co.kr/content/YardState1.jsp?gu=3",
+                "https://info.bptc.co.kr/content/YardState1.jsp?gu=4"
         );
         plannedBlockRepository.deleteAll();
-        AtomicReference<List<WebElement>> pagelements = new AtomicReference<>(new ArrayList<>());
         ExecutorService executor = Executors.newFixedThreadPool(urls.size());
         for (String url : urls) {
             executor.execute(() -> {
                 WebDriver driver = settingWebDriver(url);
                 List<WebElement> elements= driver.findElements(By.cssSelector("body > table > tbody > tr > td > table > tbody > tr > td"));
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(10));
+                wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("tabletypeC")));
+
                 for (int i = 13; i <= elements.size(); i += 13) {
                     PlannedBlock plannedBlock = PlannedBlock.builder()
                             .block(elements.get(i-13).getText())
@@ -189,13 +195,13 @@ public class CrawlingService {
                     synchronized (plannedBlock){
 
                     updatePlannedBlock(plannedBlock);
-                    System.out.println("plannedBlock.toString() = " + plannedBlock.toString());
+                    System.out.println("plannedBlock.toString() = " + plannedBlock);
                     }
                 }
                 driver.quit();
             });
         }
-        boolean awaitTermination = executor.awaitTermination(4000L, TimeUnit.MILLISECONDS);
+        boolean awaitTermination = executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         if (awaitTermination) {
             executor.shutdown();
         } else {
