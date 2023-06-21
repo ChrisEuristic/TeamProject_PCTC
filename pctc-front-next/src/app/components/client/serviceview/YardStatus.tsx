@@ -12,22 +12,24 @@ declare global {
 const YardStatus = ({ apiKey }: any) => {
   const [serviceViewOpacity, setServiceViewOpacity] = useState(1);
   const [blockStatus, setBlockStatus] = useState({});
+  const [script, setScript] = useState<HTMLScriptElement>(document.createElement("script"));
   const container = useRef(null);
 
   useEffect(() => {
+    script.src =
+      "//dapi.kakao.com/v2/maps/sdk.js?appkey=" + apiKey + "&autoload=false";
+    document.head.appendChild(script);
+
     (async function () {
-      const res = await fetch("http://10.125.121.222:8080/yard");
+      const res = await fetch("http://10.125.121.222:8080/api/SCO");
       const result = await res.json();
+      console.log(result);
+      console.log(Object.keys(result).length);
       setBlockStatus(result);
     })();
   }, []);
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src =
-      "//dapi.kakao.com/v2/maps/sdk.js?appkey=" + apiKey + "&autoload=false";
-    document.head.appendChild(script);
-
     script.onload = () => {
       if (typeof window !== "undefined") {
         const { kakao } = window;
@@ -57,7 +59,7 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.0005
             ),
             [75, 25],
-            9,
+            8,
             map,
             1,
             blockStatus
@@ -81,7 +83,7 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.0004
             ),
             [75, 25],
-            11,
+            10,
             map,
             3,
             blockStatus
@@ -93,7 +95,7 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.00035
             ),
             [75, 25],
-            9,
+            7,
             map,
             4,
             blockStatus
@@ -105,7 +107,7 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.0003
             ),
             [75, 25],
-            8,
+            6,
             map,
             5,
             blockStatus
@@ -129,7 +131,7 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.0002
             ),
             [75, 25],
-            7,
+            4,
             map,
             7,
             blockStatus
@@ -141,27 +143,15 @@ const YardStatus = ({ apiKey }: any) => {
               standardPoint[1] - 0.00015
             ),
             [75, 25],
-            7,
+            4,
             map,
             8,
-            blockStatus
-          );
-          createBlocksYardStatus(
-            kakao,
-            new kakao.maps.LatLng(
-              standardPoint[0] + 0.0005,
-              standardPoint[1] - 0.0001
-            ),
-            [75, 25],
-            7,
-            map,
-            9,
             blockStatus
           );
         });
       }
     };
-  }, [container, apiKey, blockStatus]);
+  }, [blockStatus]);
 
   return (
     <>
@@ -174,6 +164,7 @@ const YardStatus = ({ apiKey }: any) => {
         height 80vh;
         display: flex;
         justify-content: center;
+        box-shadow: 1px 1px 3px 0px #14141480;
       }
       #container {
         width: 80vw;

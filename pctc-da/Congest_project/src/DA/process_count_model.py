@@ -62,7 +62,7 @@ def operate():
    
 
         common_df = common_df.sort_values(by='작업생성시간')
-        common_df = common_df.tail(1000)  # 마지막 300개 행만 선택
+        #common_df = common_df.tail(1000)  # 마지막 300개 행만 선택
         ## 리셋 안하면 오류남
         common_df = common_df.reset_index(drop=True)  # 인덱스를 리셋
         # common_df = common_df[-300:]
@@ -132,9 +132,6 @@ def operate():
 
         # 로드된 모델을 사용하여 예측 수행
         predictions = loaded_model.predict(X_test)
-        print(predictions)
-
-
         X_test_df = pd.DataFrame(X_test)
         X_test_with_predictions = X_test_df.copy()
         X_test_with_predictions['예측값'] = predictions
@@ -156,9 +153,17 @@ def operate():
         
         # 10분 단위 그룹화(작업생성시간 열은 인덱스가 됨)
         grouped_df = X_test_inverse_df.groupby(pd.Grouper(key='작업생성시간', freq='10min')).mean()
+        print(grouped_df)
+        grouped_df = grouped_df.fillna(grouped_df.ffill().add(grouped_df.bfill()).div(2))
+        grouped_df = grouped_df.fillna(grouped_df.mean())
+        
+
+        print(grouped_df.isna().sum())
         time_group = grouped_df.index.tolist()
         predict_group = grouped_df['예측값'].tolist()
         actual_group = grouped_df['실제값'].tolist()
+        print(predict_group)
+        print(actual_group)
 
        #평가 지표 계산
         mae = mean_absolute_error(y_test, predictions)
