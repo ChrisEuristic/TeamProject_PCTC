@@ -80,7 +80,7 @@ export function createShip(
     };
 
     overlayShip2 = new kakao.maps.CustomOverlay({
-      content: `<div class="border rounded px-2 border-gray-800 bg-white flex flex-col justify-center items-center">
+      content: `<div style="border: 1px solid #141414; border-radius: 5px; padding: 0 1rem; background-color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 15vw; font-size: 1rem;">
       <div style="width: 100%; text-align: center; border-bottom: solid 1px #000000; font-weight: bold">${dataValue.name}</div>
       <div style="width: 100%; text-align: center;">입항시간 | ${dataValue.arrival}</div> 
       <div style="width: 100%; text-align: center;">출항시간 | ${dataValue.departure}</div>

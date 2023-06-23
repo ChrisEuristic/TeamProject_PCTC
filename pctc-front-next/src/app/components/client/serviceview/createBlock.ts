@@ -61,7 +61,7 @@ export function createBlock(
       La: (polygonPathRoteted[0].La + polygonPathRoteted[2].La) / 2,
       Ma: (polygonPathRoteted[0].Ma + polygonPathRoteted[2].Ma) / 2 + 0.001,
     };
-    let content = `<div class="border rounded px-2 border-gray-800 bg-white flex flex-col justify-center items-center">
+    let content = `<div style="border: 1px solid #141414; border-radius: 5px; padding: 0 0.5rem; background-color: white; display:flex; flex-direction: column; justify-content: center; align-items: center; width: 10vw; height: 6vh; font-size: 1rem;">
     <div style="width: 100%; text-align: center; border-bottom: solid 1px #000000; font-weight: bold">${blockName}</div>
     <div style="width: 100%; text-align: center;">블록 적재도 | ${
       blockStatusToString(blockStatus).status

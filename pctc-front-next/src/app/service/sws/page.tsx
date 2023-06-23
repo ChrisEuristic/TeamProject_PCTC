@@ -42,20 +42,17 @@ export default function SWS() {
       const res = await fetch("http://10.125.121.222:8080/port");
       const data = await res.json();
       setDataValue(data as ShipDataValue[]);
-      console.log("최초 렌더링!!!");
     })();
 
     setInterval(async () => {
       const res = await fetch("http://10.125.121.222:8080/port");
       const data = await res.json();
       setDataValue(data as ShipDataValue[]);
-      console.log("재렌더링!!!");
     }, 10000);
   }, []);
 
   useEffect(() => {
     rendering++;
-    console.log(rendering);
 
     setTimeout(() => {
       if (apiKey !== "") {
