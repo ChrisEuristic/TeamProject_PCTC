@@ -23,8 +23,6 @@ const YardStatus = ({ apiKey }: any) => {
     (async function () {
       const res = await fetch("http://10.125.121.222:8080/api/SCO");
       const result = await res.json();
-      console.log(result);
-      console.log(Object.keys(result).length);
       setBlockStatus(result);
     })();
   }, []);

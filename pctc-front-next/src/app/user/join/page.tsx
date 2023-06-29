@@ -28,7 +28,8 @@ export default function Join() {
   }
 
   async function submit() {
-    if (process.env.NODE_ENV === "development") {
+    if (true) {
+    // if (process.env.NODE_ENV === "development") {
       const res = await fetch("http://10.125.121.222:8080/user/join", {
         method: "POST",
         headers: {

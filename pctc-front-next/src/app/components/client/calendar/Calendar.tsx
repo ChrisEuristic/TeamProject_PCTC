@@ -8,76 +8,47 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { AiOutlineHome } from "react-icons/ai";
 import DetailView from "./DetailView";
+import { OriginShipData, ShipData, SimpleShipData } from "./ShipDataType";
 
 export default function Calendar() {
-  const events = [
-    {
-      resourceId: "1",
-      title: "NSEP-9(P)",
-      start: new Date("2023-06-20T03:10:00"),
-      end: new Date("2023-06-20T22:30:00"),
-    },
-    {
-      resourceId: "1",
-      title: "NSEP-9(P)",
-      start: new Date("2023-06-20T03:10:00"),
-      end: new Date("2023-06-20T22:30:00"),
-    },
-    {
-      resourceId: "1",
-      title: "NSEP-9(P)",
-      start: new Date("2023-06-20T03:10:00"),
-      end: new Date("2023-06-20T22:30:00"),
-    },
-    {
-      resourceId: "1",
-      title: "NSEP-9(P)",
-      start: new Date("2023-06-20T03:10:00"),
-      end: new Date("2023-06-20T22:30:00"),
-    },
-    {
-      resourceId: "2",
-      title: "JXRN-23(S)",
-      start: new Date("2023-06-20T06:00:00"),
-      end: new Date("2023-06-21T07:30:00"),
-    },
-    {
-      resourceId: "3",
-      title: "PCMC-23(S)",
-      start: new Date("2023-06-19T17:30:00"),
-      end: new Date("2023-06-21T03:30:00"),
-    },
-    {
-      resourceId: "4",
-      title: "KSCM-25(P)",
-      start: new Date("2023-06-19T23:00:00"),
-      end: new Date("2023-06-23T00:00:00"),
-    },
-    {
-      resourceId: "5",
-      title: "HNVY-5(S)",
-      start: new Date("2023-06-21T07:00:00"),
-      end: new Date("2023-06-22T22:30:00"),
-    },
-    {
-      resourceId: "6",
-      title: "OLYM-4(S)",
-      start: new Date("2023-06-20T06:00:00"),
-      end: new Date("2023-06-22T03:30:00"),
-    },
-    {
-      resourceId: "7",
-      title: "DJCF-8(S)",
-      start: new Date("2023-06-20T00:00:00"),
-      end: new Date("2023-06-21T15:00:00"),
-    },
-    {
-      resourceId: "8",
-      title: "NSTP-9(P)",
-      start: new Date("2023-06-19T23:00:00"),
-      end: new Date("2023-06-22T17:30:00"),
-    },
-  ];
+  const [events, setEvents] = useState<SimpleShipData[]>();
+  const [detailEvents, setDetailEvents] = useState<Map<string, ShipData>>();
+  const shipMap = new Map<string, ShipData>();
+
+  useEffect(() => {
+    (async function () {
+      const res = await fetch(`http://10.125.121.222:8080/api/berthStatus`);
+      const shipDataArr = (await res.json()) as OriginShipData[];
+      setEvents(shipDataArr.map((shipData) => {
+        shipMap.set(shipData.vessel.concat(`(${shipData.berthing})`), {
+          resourceId: shipData.shipOrder,
+          title: shipData.vessel.concat(`(${shipData.berthing})`),
+          start: new Date(shipData.scheduledArrivalTime),
+          end: new Date(shipData.departureTime),
+          shipName: shipData.shipName,
+          berthing: shipData.berthing, // 접안
+          shipOwner: shipData.shipOwner, // 선사
+          scheduledArrivalTime: shipData.scheduledArrivalTime, // 예정 입항일시
+          arrivalTime: shipData.arrivalTime, // 실제 입항일시
+          cargoTime: shipData.cargoTime, // 반입 마감 일시
+          workTime: shipData.workTime, // 작업 완료 일시
+          departureTime: shipData.departureTime, // 출항 일시
+          discharge: shipData.discharge, // 양하
+          loading: shipData.loading, // 적하
+        })
+
+        return {
+          resourceId: shipData.shipOrder,
+          title: shipData.vessel.concat(`(${shipData.berthing})`),
+          start: new Date(shipData.scheduledArrivalTime),
+          end: new Date(shipData.departureTime),
+        }
+      }));
+
+      setDetailEvents(shipMap);
+
+    })();
+  }, []);
 
   const resources = [
     { id: "1", title: "1번 선석" },
@@ -95,9 +66,7 @@ export default function Calendar() {
   const [nextClassName, setNextClassName] = useState("");
 
   const [calendarApi, setCalendarApi] = useState<CalendarApi | null>(null);
-  const [currentDate, setCurrentDate] = useState(
-    format(new Date(), "yyyy년 MM월 dd일")
-  );
+  const [currentDate, setCurrentDate] = useState(format(new Date(), "yyyy년 MM월 dd일"));
   const [detailViewState, setDetailViewState] = useState<JSX.Element>();
 
   useEffect(() => {
@@ -174,7 +143,7 @@ export default function Calendar() {
           initialView="resourceTimelineDay"
           events={events}
           resources={resources}
-          height={events.length < 8 ? 410 : (events.length - 8) * 27 + 410} // events의 개수가 8개를 초과한 부분에 대해 기본 높이 410에서 27px씩 가산.
+          height={500} // events의 개수가 8개를 초과한 부분에 대해 기본 높이 410에서 27px씩 가산.
           headerToolbar={{}}
           slotMinWidth={10}
           slotLabelFormat={{ hour: "numeric", meridiem: false, hour12: false }}
@@ -185,10 +154,14 @@ export default function Calendar() {
             }
           }}
           eventMouseEnter={(info) => {
-            setDetailViewState(<DetailView x={info.jsEvent.clientX} y={info.jsEvent.clientY} info={info.event.title} setDetailViewState={setDetailViewState} />)
-          }}
-          eventMouseLeave={(info) => {
-            console.log("Clicked on event: " + info.event.title);
+            setDetailViewState(
+              <DetailView
+                x={info.jsEvent.clientX}
+                y={info.jsEvent.clientY}
+                info={detailEvents?.get(info.event.title)!}
+                setDetailViewState={setDetailViewState}
+              />
+            );
           }}
         />
       </div>

@@ -21,8 +21,6 @@ export function createBlocksYardStatus(
   const blockAddress = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
   for (let i = 0; i < repeat; i++) {
     const blockName = blockColumn + blockAddress[i];
-    console.log(blockName);
-    console.log(blockStatus[blockName]);
     if (typeof blockStatus[blockName] !== "undefined") {
       const anything = createBlockYardStatus(
         kakao,
