@@ -24,6 +24,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
     compileOnly 'org.springframework.boot:spring-boot-starter-security'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -31,7 +32,6 @@ dependencies {
     // https://mvnrepository.com/artifact/com.auth0/java-jwt
     implementation group: 'com.auth0', name: 'java-jwt', version: '4.2.2'
     implementation 'org.seleniumhq.selenium:selenium-java:4.10.0'
-
 }
 
 tasks.named('test') {

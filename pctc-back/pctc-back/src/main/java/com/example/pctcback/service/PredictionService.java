@@ -13,13 +13,10 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,7 +27,7 @@ public class PredictionService {
     PredictionRepository predictionRepository;
     @Autowired
     PredictionTruckRepository predictionTruckRepository;
-//    @Scheduled(fixedRate = 6000000)
+    @Scheduled(fixedRate = 6000000)
     public void FlaskResponse() throws ParseException {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -64,7 +61,7 @@ public class PredictionService {
         predictionRepository.deleteAll();
         predictionRepository.saveAll(predictions);
     }
-//    @Scheduled(fixedRate = 20000000)
+    @Scheduled(fixedRate = 20000000)
     public void FlaskResponse2() throws ParseException {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();

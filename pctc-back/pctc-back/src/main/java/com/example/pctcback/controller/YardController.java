@@ -1,5 +1,9 @@
 package com.example.pctcback.controller;
 
+import com.example.pctcback.model.BerthStatus;
+import com.example.pctcback.model.PlannedBlock;
+import com.example.pctcback.persistence.BerthStatusRepository;
+import com.example.pctcback.persistence.PlannedBlockRepository;
 import com.example.pctcback.service.CrawlingService;
 import com.example.pctcback.service.YCOService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,16 +11,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 public class YardController {
+    final YCOService ycoservice;
+    final CrawlingService crawlingService;
     @Autowired
-    YCOService ycoservice;
+    BerthStatusRepository berthStatusRepository;
     @Autowired
-    CrawlingService crawlingService;
+    PlannedBlockRepository plannedBlockRepository;
+
+    public YardController(YCOService ycoservice, CrawlingService crawlingService) {
+        this.ycoservice = ycoservice;
+        this.crawlingService = crawlingService;
+    }
+
     @GetMapping("/yard")
     public ResponseEntity<?> YardStatusController(){
         String blockstr =  "1A,1B,1C,1D,1E,1F,1G,1H,1I," +
@@ -34,18 +44,59 @@ public class YardController {
         return ResponseEntity.ok().body(block_number);
     }
 
-    @GetMapping("/")
+    @GetMapping("/init")
     public String YardInit(){
         ycoservice.myMethod("D:/SDH/TeamProject/TeamProject_PCTC/pctc-back/pctc-back/data/YardStatus.csv");
+        ycoservice.CreateYCO();
         return "현재 DB 에 정보 넣는중";
     }
     @GetMapping("/port")
     public ResponseEntity<?> PortStatusController(){
-
-
         return ResponseEntity.ok().body(crawlingService.PortStatus());
 
     }
+    @GetMapping("/api/berthStatus")
+    public ResponseEntity<?> BerthStatus(){
+         List<BerthStatus> berth = berthStatusRepository.findAll();
+
+        return ResponseEntity.ok(berth);
+    }
+    @GetMapping("/api/emptyContainer")
+    public ResponseEntity<?> emptyContainer(){
+        List<Map<String,Map<String,Integer>>> emptyCon = crawlingService.getEmptyCon();
+        System.out.println("emptyCon = " + emptyCon);
+
+        return ResponseEntity.ok().body(emptyCon);
+
+
+    }
+    @GetMapping("/api/SCO")
+    public ResponseEntity<?> scheduledContainerOperation(){
+        List<PlannedBlock> scheduledContainers = plannedBlockRepository.findAll();
+        Map<String, List<Integer>> SCOmap = new HashMap<>();
+
+        for(PlannedBlock pb : scheduledContainers ){
+            List<Integer> value = new ArrayList<>();
+            value.add(pb.getNowYard());
+            value.add(pb.getNowShip());
+            value.add(pb.getOneYard());
+            value.add(pb.getOneShip());
+            value.add(pb.getTwoYard());
+            value.add(pb.getTwoShip());
+            value.add(pb.getThreeYard());
+            value.add(pb.getThreeShip());
+            value.add(pb.getFourYard());
+            value.add(pb.getFourShip());
+            value.add(pb.getFiveYard());
+            value.add(pb.getFiveShip());
+            SCOmap.put(pb.getBlock(),value);
+        }
+        return ResponseEntity.ok().body(SCOmap);
+
+
+    }
+
+
 
 
 
